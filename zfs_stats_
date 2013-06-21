@@ -1,0 +1,270 @@
+#!/bin/sh
+# ZFS statistics for FreeBSD
+# Author: David Bjornsson <dabb@lolnet.is>
+#
+# Description:
+#  This is a rewrite of the zfs-stats-for-freebsd
+#  scripts by patpro. Rather then pulling the
+#  information from the zfs-stats utility, it
+#  pulls it straight from sysctl.
+#
+# Tested on FreeBSD 9.0-RELEASE
+#
+# Usage: zfs_stats_FUNCTION
+#
+# Available functions:
+#	efficiency - ARC efficiency
+#	cachehitlist - Cache hit by cache list
+#	cachehitdtype - Cache hit by data type
+#	utilization - ARC size breakdown
+#	l2utilization - L2ARC size breakdown
+#	l2efficiency - L2ARC efficiency
+#
+#%# family=auto
+
+FUNCTION=$(basename $0 | cut -d_ -f3)
+BC='/usr/bin/bc -q'
+SYS='/sbin/sysctl -n'
+
+#
+# Sysctl macros
+#
+
+
+
+ARC_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^hits" | awk '{print $3;}'`
+ARC_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^misses" | awk '{print $3;}'`
+
+DEMAND_DATA_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^demand_data_hits" | awk '{print $3;}'`
+DEMAND_DATA_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^demand_data_misses" | awk '{print $3;}'`
+DEMAND_METADATA_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^demand_metadata_hits" | awk '{print $3;}'`
+DEMAND_METADATA_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^demand_metadata_misses" | awk '{print $3;}'`
+
+MFU_GHOST_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^mfu_ghost_hits" | awk '{print $3;}'`
+MFU_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^mfu_hits" | awk '{print $3;}'`
+MRU_GHOST_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^mru_ghost_hits" | awk '{print $3;}'`
+MRU_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^mru_hits" | awk '{print $3;}'`
+
+PREFETCH_DATA_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_data_hits" | awk '{print $3;}'`
+PREFETCH_DATA_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_data_misses" | awk '{print $3;}'`
+PREFETCH_METADATA_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_metadata_hits" | awk '{print $3;}'`
+PREFETCH_METADATA_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_metadata_misses" | awk '{print $3;}'`
+
+SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^size" | awk '{print $3;}'`
+MRU_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^p\s" | awk '{print $3;}'`
+MAX_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c_max" | awk '{print $3;}'`
+MIN_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c_min" | awk '{print $3;}'`
+TARGET_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c\s" | awk '{print $3;}'`
+
+L2_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^l2_size" | awk '{print $3;}'`
+L2_HDR_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^l2_hdr_size" | awk '{print $3;}'`
+
+L2_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^l2_hits" | awk '{print $3;}'`
+L2_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^l2_misses" | awk '{print $3;}'`
+
+#
+# Calculation macros
+#
+
+ANON_HITS=`echo "$ARC_HITS-($MFU_HITS+$MRU_HITS+$MFU_GHOST_HITS+$MRU_GHOST_HITS)" | $BC`
+ARC_ACCESSES_TOTAL=`echo "$ARC_HITS+$ARC_MISSES" | $BC`
+DEMAND_DATA_TOTAL=`echo "$DEMAND_DATA_HITS+$DEMAND_DATA_MISSES" | $BC`
+PREFETCH_DATA_TOTAL=`echo "$PREFETCH_DATA_HITS+$PREFETCH_DATA_MISSES" | $BC`
+REAL_HITS=`echo "$MFU_HITS+$MRU_HITS" | $BC`
+
+CACHE_HIT_RATIO_PERC=`echo "scale=2 ; (100*$ARC_HITS/$ARC_ACCESSES_TOTAL)" | $BC`
+CACHE_MISS_RATIO_PERC=`echo "scale=2 ; (100*$ARC_MISSES/$ARC_ACCESSES_TOTAL)" | $BC`
+ACTUAL_HIT_RATIO_PERC=`echo "scale=2 ; (100*$REAL_HITS/$ARC_ACCESSES_TOTAL)" | $BC`
+DATA_DEMAND_EFFICIENCY_PERC=`echo "scale=2 ; (100*$DEMAND_DATA_HITS/$DEMAND_DATA_TOTAL)" | $BC`
+DATA_PREFETCH_EFFICENCY_PERC=`echo "scale=2 ; (100*$PREFETCH_DATA_HITS/$PREFETCH_DATA_TOTAL)" | $BC`
+
+ANONYMOUSLY_USED_PERC=`echo "scale=2 ; (100*$ANON_HITS/$ARC_HITS)" | $BC`
+MOST_RECENTLY_USED_PERC=`echo "scale=2 ; (100*$MRU_HITS/$ARC_HITS)" | $BC`
+MOST_FREQUENTLY_USED_PERC=`echo "scale=2 ; (100*$MFU_HITS/$ARC_HITS)" | $BC`
+MOST_RECENTLY_USED_GHOST_PERC=`echo "scale=2 ; (100*$MRU_GHOST_HITS/$ARC_HITS)" | $BC`
+MOST_FREQUENTLY_USED_GHOST_PERC=`echo "scale=2 ; (100*$MFU_GHOST_HITS/$ARC_HITS)" | $BC`
+
+DEMAND_DATA_HIT_PERC=`echo "scale=2 ; (100*$DEMAND_DATA_HITS/$ARC_HITS)" | $BC`
+DEMAND_DATA_MISS_PERC=`echo "scale=2 ; (100*$DEMAND_DATA_MISSES/$ARC_MISSES)" | $BC`
+PREFETCH_DATA_HIT_PERC=`echo "scale=2 ; (100*$PREFETCH_DATA_HITS/$ARC_HITS)" | $BC`
+PREFETCH_DATA_MISS_PERC=`echo "scale=2 ; (100*$PREFETCH_DATA_MISSES/$ARC_MISSES)" | $BC`
+DEMAND_METADATA_HIT_PERC=`echo "scale=2 ; (100*$DEMAND_METADATA_HITS/$ARC_HITS)" | $BC`
+DEMAND_METADATA_MISS_PERC=`echo "scale=2 ; (100*$DEMAND_METADATA_MISSES/$ARC_MISSES)" | $BC`
+PREFETCH_METADATA_HIT_PERC=`echo "scale=2 ; (100*$PREFETCH_METADATA_HITS/$ARC_HITS)" | $BC`
+PREFETCH_METADATA_MISSES_PERC=`echo "scale=2 ; (100*$PREFETCH_METADATA_MISSES/$ARC_MISSES)" | $BC`
+
+if [ $SIZE -gt $TARGET_SIZE ]; then
+	MFU_SIZE=`echo "$SIZE-$MRU_SIZE" | $BC`
+else
+	MFU_SIZE=`echo "$TARGET_SIZE-$MRU_SIZE" | $BC`
+fi
+
+L2_ACCESSES_TOTAL=`echo "$L2_HITS+$L2_MISSES" | $BC`
+if [ $L2_ACCESSES_TOTAL -gt 0 ]; then
+	L2_HIT_RATIO_PERC=`echo "scale=2 ; (100*$L2_HITS/$L2_ACCESSES_TOTAL)" | $BC`
+	L2_MISS_RATIO_PERC=`echo "scale=2 ; (100*$L2_MISSES/$L2_ACCESSES_TOTAL)" | $BC`
+fi
+
+efficiency() {
+        if [ "$1" = "config" ]; then
+                echo 'graph_title ZFS ARC Efficiency'
+                echo 'graph_args -u 100'
+                echo 'graph_vlabel %'
+                echo 'graph_info This graph shows the ARC Efficiency'
+
+                echo 'hits.label Hit Ratio'
+                echo 'misses.label Miss Ratio'
+                echo 'actual_hits.label Actual Hit Ratio'
+                echo 'data_demand_efficiency.label Data Demand Efficiency'
+                echo 'data_prefetch_efficiency.label Data Prefetch Efficiency'
+
+		exit 0
+        else
+                echo 'hits.value ' $CACHE_HIT_RATIO_PERC
+                echo 'misses.value ' $CACHE_MISS_RATIO_PERC
+                echo 'actual_hits.value ' $ACTUAL_HIT_RATIO_PERC
+                echo 'data_demand_efficiency.value ' $DATA_DEMAND_EFFICIENCY_PERC
+                echo 'data_prefetch_efficiency.value ' $DATA_PREFETCH_EFFICENCY_PERC
+        fi
+}
+
+cachehitlist() {
+        if [ "$1" = "config" ]; then
+                echo 'graph_title ZFS ARC Efficiency: Cache hits by cache list'
+                echo 'graph_args -u 100'
+                echo 'graph_vlabel %'
+                echo 'graph_info This graph shows the ARC Efficiency'
+
+                echo 'cache_list_anon.label Anonymously Used'
+                echo 'cache_list_most_rec.label Most Recently Used'
+                echo 'cache_list_most_freq.label Most Frequently Used'
+                echo 'cache_list_most_rec_ghost.label Most Recently Used Ghost'
+                echo 'cache_list_most_freq_ghost.label Most Frequently Used Ghost'
+
+		exit 0
+	else
+                echo 'cache_list_anon.value ' $ANONYMOUSLY_USED_PERC
+                echo 'cache_list_most_rec.value ' $MOST_RECENTLY_USED_PERC
+                echo 'cache_list_most_freq.value ' $MOST_FREQUENTLY_USED_PERC
+                echo 'cache_list_most_rec_ghost.value ' $MOST_RECENTLY_USED_GHOST_PERC
+                echo 'cache_list_most_freq_ghost.value ' $MOST_FREQUENTLY_USED_GHOST_PERC
+	fi
+}
+
+cachehitdtype() {
+        if [ "$1" = "config" ]; then
+                echo 'graph_title ZFS ARC Efficiency: Cache hits by data type'
+                echo 'graph_args -u 100'
+                echo 'graph_vlabel %'
+                echo 'graph_info This graph shows the ARC Efficiency'
+
+                echo 'data_type_demand_hits.label Demand Data Hit Ratio'
+                echo 'data_type_demand_misses.label Demand Data Miss Ratio'
+                echo 'data_type_prefetch_hits.label Prefetch Data Hit Ratio'
+                echo 'data_type_prefetch_misses.label Prefetch Data Miss Ratio'
+                echo 'data_type_demand_metadata_hits.label Demand Metadata Hit Ratio'
+                echo 'data_type_demand_metadata_misses.label Demand Metadata Miss Ratio'
+                echo 'data_type_prefetch_metadata_hits.label Prefetch Metadata Hit Ratio'
+                echo 'data_type_prefetch_metadata_misses.label Prefetch Metadata Miss Ratio'
+
+		exit 0
+	else
+                echo 'data_type_demand_hits.value ' $DEMAND_DATA_HIT_PERC
+                echo 'data_type_demand_misses.value ' $DEMAND_DATA_MISS_PERC
+                echo 'data_type_prefetch_hits.value ' $PREFETCH_DATA_HIT_PERC
+                echo 'data_type_prefetch_misses.value ' $PREFETCH_DATA_MISS_PERC
+                echo 'data_type_demand_metadata_hits.value ' $DEMAND_METADATA_HIT_PERC
+                echo 'data_type_demand_metadata_misses.value ' $DEMAND_METADATA_MISS_PERC
+                echo 'data_type_prefetch_metadata_hits.value ' $PREFETCH_METADATA_HIT_PERC
+                echo 'data_type_prefetch_metadata_misses.value ' $PREFETCH_METADATA_MISSES_PERC
+	fi
+}
+
+utilization() {
+        if [ "$1" = "config" ]; then
+                echo 'graph_title ZFS ARC Size'
+                echo 'graph_args --base 1024 -l 0 --vertical-label Bytes'
+                echo 'graph_vlabel Size in MB'
+                echo 'graph_info This graph shows the ARC Size utilization'
+
+                echo 'max_size.label Maximum Size'
+		echo 'max_size.draw AREA'
+                echo 'size.label Size'
+                echo 'size.draw AREA'
+                echo 'min_size.label Minimum Size'
+                echo 'min_size.draw AREA'
+                echo 'target_size.label Target Size'
+                echo 'target_size.draw LINE1'
+		echo 'recently_size.label Recently Used Cache Size'
+		echo 'recently_size.draw LINE1'
+		echo 'frequently_size.label Frequently Used Cache Size'
+		echo 'frequently_size.draw LINE1'
+
+		exit 0
+	else
+                echo 'max_size.value ' $MAX_SIZE
+		echo 'size.value ' $SIZE
+                echo 'min_size.value ' $MIN_SIZE
+                echo 'target_size.value ' $TARGET_SIZE
+		echo 'recently_size.value ' $MRU_SIZE
+		echo 'frequently_size.value ' $MFU_SIZE
+	fi
+}
+
+l2utilization() {
+        if [ "$1" = "config" ]; then
+                echo 'graph_title ZFS L2ARC Size'
+                echo 'graph_args --base 1024 -r -l 0 --vertical-label Bytes'
+                echo 'graph_vlabel Size in MB'
+                echo 'graph_info This graph shows the L2ARC Size utilization'
+
+                echo 'size.label Size'
+                echo 'size.draw AREA'
+                echo 'hdr_size.label Header Size'
+                echo 'hdr_size.draw AREA'
+
+                exit 0
+        else
+                echo 'size.value ' $L2_SIZE
+                echo 'hdr_size.value ' $L2_HDR_SIZE
+        fi
+}
+
+l2efficiency() {
+	if [ "$1" = "config" ]; then
+		echo 'graph_title ZFS L2ARC Efficiency'
+                echo 'graph_args -u 100'
+                echo 'graph_vlabel %'
+                echo 'graph_info This graph shows the L2ARC Efficiency'
+
+		echo 'l2_hits.label Hit Ratio'
+		echo 'l2_misses.label Miss Ratio'
+	else
+		echo 'l2_hits.value ' $L2_HIT_RATIO_PERC
+		echo 'l2_misses.value ' $L2_MISS_RATIO_PERC
+	fi
+
+}
+
+[ "$1" = "config" ] && echo "graph_category zfs"
+
+case "$FUNCTION" in
+        efficiency)
+                efficiency $1
+                ;;
+        cachehitlist)
+                cachehitlist $1
+                ;;
+        cachehitdtype)
+                cachehitdtype $1
+                ;;
+        utilization)
+                utilization $1
+                ;;
+	l2utilization)
+		l2utilization $1
+		;;
+	l2efficiency)
+		l2efficiency $1
+		;;
+esac
