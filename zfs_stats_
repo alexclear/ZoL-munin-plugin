@@ -1,14 +1,7 @@
 #!/bin/sh
-# ZFS statistics for FreeBSD
-# Author: David Bjornsson <dabb@lolnet.is>
-#
-# Description:
-#  This is a rewrite of the zfs-stats-for-freebsd
-#  scripts by patpro. Rather then pulling the
-#  information from the zfs-stats utility, it
-#  pulls it straight from sysctl.
-#
-# Tested on FreeBSD 9.0-RELEASE
+# A port of ZFS stats for FreeBSD plugin to Linux
+# Author of the original plugin: David Bjornsson <dabb@lolnet.is>
+# Author of the Linux port: Alex Chistyakov <alexclear@gmail.com>
 #
 # Usage: zfs_stats_FUNCTION
 #
