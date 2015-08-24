@@ -44,7 +44,7 @@ PREFETCH_METADATA_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_metad
 PREFETCH_METADATA_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_metadata_misses" | awk '{print $3;}'`
 
 SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^size" | awk '{print $3;}'`
-MRU_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^p\s" | awk '{print $3;}'`
+MRU_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^mru_size" | awk '{print $3;}'`
 MAX_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c_max" | awk '{print $3;}'`
 MIN_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c_min" | awk '{print $3;}'`
 TARGET_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c\s" | awk '{print $3;}'`
