@@ -44,7 +44,8 @@ PREFETCH_METADATA_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_metad
 PREFETCH_METADATA_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_metadata_misses" | awk '{print $3;}'`
 
 SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^size" | awk '{print $3;}'`
-MRU_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^p\s" | awk '{print $3;}'`
+MRU_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^mru_size" | awk '{print $3;}'`
+MFU_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^mfu_size" | awk '{print $3;}'`
 MAX_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c_max" | awk '{print $3;}'`
 MIN_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c_min" | awk '{print $3;}'`
 TARGET_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c\s" | awk '{print $3;}'`
@@ -85,12 +86,6 @@ DEMAND_METADATA_HIT_PERC=`echo "scale=2 ; (100*$DEMAND_METADATA_HITS/$ARC_HITS)"
 DEMAND_METADATA_MISS_PERC=`echo "scale=2 ; (100*$DEMAND_METADATA_MISSES/$ARC_MISSES)" | $BC`
 PREFETCH_METADATA_HIT_PERC=`echo "scale=2 ; (100*$PREFETCH_METADATA_HITS/$ARC_HITS)" | $BC`
 PREFETCH_METADATA_MISSES_PERC=`echo "scale=2 ; (100*$PREFETCH_METADATA_MISSES/$ARC_MISSES)" | $BC`
-
-if [ $SIZE -gt $TARGET_SIZE ]; then
-	MFU_SIZE=`echo "$SIZE-$MRU_SIZE" | $BC`
-else
-	MFU_SIZE=`echo "$TARGET_SIZE-$MRU_SIZE" | $BC`
-fi
 
 L2_ACCESSES_TOTAL=`echo "$L2_HITS+$L2_MISSES" | $BC`
 if [ $L2_ACCESSES_TOTAL -gt 0 ]; then
