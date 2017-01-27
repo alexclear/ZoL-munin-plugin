@@ -24,36 +24,38 @@ SYS='/sbin/sysctl -n'
 #
 
 
+CONTENT=`cat /proc/spl/kstat/zfs/arcstats`
 
-ARC_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^hits" | awk '{print $3;}'`
-ARC_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^misses" | awk '{print $3;}'`
+ARC_HITS=`echo "$CONTENT" | grep "^hits" | awk '{print $3;}'`
 
-DEMAND_DATA_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^demand_data_hits" | awk '{print $3;}'`
-DEMAND_DATA_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^demand_data_misses" | awk '{print $3;}'`
-DEMAND_METADATA_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^demand_metadata_hits" | awk '{print $3;}'`
-DEMAND_METADATA_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^demand_metadata_misses" | awk '{print $3;}'`
+ARC_MISSES=`echo "$CONTENT" | grep "^misses" | awk '{print $3;}'`
 
-MFU_GHOST_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^mfu_ghost_hits" | awk '{print $3;}'`
-MFU_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^mfu_hits" | awk '{print $3;}'`
-MRU_GHOST_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^mru_ghost_hits" | awk '{print $3;}'`
-MRU_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^mru_hits" | awk '{print $3;}'`
+DEMAND_DATA_HITS=`echo "$CONTENT" | grep "^demand_data_hits" | awk '{print $3;}'`
+DEMAND_DATA_MISSES=`echo "$CONTENT" | grep "^demand_data_misses" | awk '{print $3;}'`
+DEMAND_METADATA_HITS=`echo "$CONTENT" | grep "^demand_metadata_hits" | awk '{print $3;}'`
+DEMAND_METADATA_MISSES=`echo "$CONTENT" | grep "^demand_metadata_misses" | awk '{print $3;}'`
 
-PREFETCH_DATA_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_data_hits" | awk '{print $3;}'`
-PREFETCH_DATA_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_data_misses" | awk '{print $3;}'`
-PREFETCH_METADATA_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_metadata_hits" | awk '{print $3;}'`
-PREFETCH_METADATA_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^prefetch_metadata_misses" | awk '{print $3;}'`
+MFU_GHOST_HITS=`echo "$CONTENT" | grep "^mfu_ghost_hits" | awk '{print $3;}'`
+MFU_HITS=`echo "$CONTENT" | grep "^mfu_hits" | awk '{print $3;}'`
+MRU_GHOST_HITS=`echo "$CONTENT" | grep "^mru_ghost_hits" | awk '{print $3;}'`
+MRU_HITS=`echo "$CONTENT" | grep "^mru_hits" | awk '{print $3;}'`
 
-SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^size" | awk '{print $3;}'`
-MRU_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^p\s" | awk '{print $3;}'`
-MAX_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c_max" | awk '{print $3;}'`
-MIN_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c_min" | awk '{print $3;}'`
-TARGET_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^c\s" | awk '{print $3;}'`
+PREFETCH_DATA_HITS=`echo "$CONTENT" | grep "^prefetch_data_hits" | awk '{print $3;}'`
+PREFETCH_DATA_MISSES=`echo "$CONTENT" | grep "^prefetch_data_misses" | awk '{print $3;}'`
+PREFETCH_METADATA_HITS=`echo "$CONTENT" | grep "^prefetch_metadata_hits" | awk '{print $3;}'`
+PREFETCH_METADATA_MISSES=`echo "$CONTENT" | grep "^prefetch_metadata_misses" | awk '{print $3;}'`
 
-L2_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^l2_size" | awk '{print $3;}'`
-L2_HDR_SIZE=`cat /proc/spl/kstat/zfs/arcstats | grep "^l2_hdr_size" | awk '{print $3;}'`
+SIZE=`echo "$CONTENT" | grep "^size" | awk '{print $3;}'`
+MRU_SIZE=`echo "$CONTENT" | grep "^p\s" | awk '{print $3;}'`
+MAX_SIZE=`echo "$CONTENT" | grep "^c_max" | awk '{print $3;}'`
+MIN_SIZE=`echo "$CONTENT" | grep "^c_min" | awk '{print $3;}'`
+TARGET_SIZE=`echo "$CONTENT" | grep "^c\s" | awk '{print $3;}'`
 
-L2_HITS=`cat /proc/spl/kstat/zfs/arcstats | grep "^l2_hits" | awk '{print $3;}'`
-L2_MISSES=`cat /proc/spl/kstat/zfs/arcstats | grep "^l2_misses" | awk '{print $3;}'`
+L2_SIZE=`echo "$CONTENT" | grep "^l2_size" | awk '{print $3;}'`
+L2_HDR_SIZE=`echo "$CONTENT" | grep "^l2_hdr_size" | awk '{print $3;}'`
+
+L2_HITS=`echo "$CONTENT" | grep "^l2_hits" | awk '{print $3;}'`
+L2_MISSES=`echo "$CONTENT" | grep "^l2_misses" | awk '{print $3;}'`
 
 #
 # Calculation macros
