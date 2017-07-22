@@ -17,11 +17,6 @@
 
 FUNCTION=$(basename $0 | cut -d_ -f3)
 BC='/usr/bin/bc -q'
-SYS='/sbin/sysctl -n'
-
-#
-# Sysctl macros
-#
 
 
 CONTENT=`cat /proc/spl/kstat/zfs/arcstats`
